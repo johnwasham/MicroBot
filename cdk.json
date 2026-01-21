@@ -1,5 +1,6 @@
 {
   "app": "npx ts-node --prefer-ts-exts bin/micro_bot.ts",
+  "profile": "cdk-2026",
   "watch": {
     "include": [
       "**"
