@@ -16,8 +16,6 @@ export class MicroBotPipelineStack extends cdk.Stack {
       }),
     });
 
-    // pipeline.addStage(new MicroBotStage(this, "beta", {
-    //   vpc: props.vpc
-    // }));
+    pipeline.addStage(new MicroBotStage(this, "beta", {}));
   }
 }
