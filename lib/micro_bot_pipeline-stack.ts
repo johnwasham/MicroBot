@@ -11,7 +11,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
       synth: new ShellStep('Synth', {
         input: CodePipelineSource.gitHub('johnwasham/MicroBot', 'main'),
         commands: ['npm ci', 'npm run build', 'npx cdk synth']
-      })
+      }),
     });
   }
 }
