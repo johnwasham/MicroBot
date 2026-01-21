@@ -10,11 +10,11 @@ export class MicroBotFargateStack extends Stack {
     constructor(scope: Construct, id: string, stageName: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        const vpc = new ec2.Vpc(this, "MicroBotVpc", { maxAzs: 2 })
+        const vpc = new ec2.Vpc(this, 'MicroBotVpc', { maxAzs: 2 })
 
-        const cluster = new ecs.Cluster(this, 'MicroBotCluster-' + stageName, { vpc })
+        const cluster = new ecs.Cluster(this, 'MicroBotCluster', { vpc })
 
-        new ecs_patterns.ApplicationLoadBalancedFargateService(this, "FargateService-" + stageName, {
+        new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'FargateService', {
             cluster,
             taskImageOptions: {
                 image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample")
