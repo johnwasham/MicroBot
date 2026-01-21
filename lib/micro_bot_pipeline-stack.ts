@@ -7,9 +7,9 @@ export class MicroBotPipelineStack extends cdk.Stack {
     super(scope, id, props);
 
     const pipeline = new CodePipeline(this, 'Pipeline', {
-      pipelineName: 'MicroBot Pipeline',
+      pipelineName: 'MicroBotPipelineStack',
       synth: new ShellStep('Synth', {
-        input: CodePipelineSource.gitHub('OWNER/REPO', 'main'),
+        input: CodePipelineSource.gitHub('johnwasham/MicroBot', 'main'),
         commands: ['npm ci', 'npm run build', 'npx cdk synth']
       })
     });
