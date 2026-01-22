@@ -5,7 +5,6 @@ import {
   CodePipelineSource,
   ShellStep,
 } from 'aws-cdk-lib/pipelines';
-import { MicroBotFargateStack } from './fargate-stack';
 import { MicroBotStage } from './stage';
 
 

@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from "constructs";
-import { MicroBotFargateStack } from './fargate-stack';
+import { MicroBotFargateStack } from './infra-fargate-stack';
 
 
 export class MicroBotStage extends cdk.Stage {
