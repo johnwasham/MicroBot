@@ -1,4 +1,3 @@
-// app-pipeline-stack.ts
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import {
@@ -15,19 +14,19 @@ export class ServicePipelineStack extends cdk.Stack {
     // /* ----------------------------------------------------------
     //    1. Pipeline that builds the Docker image and pushes it to ECR
     // ---------------------------------------------------------- */
-    // const pipeline = new CodePipeline(this, 'ServicePipeline', {
-    //     pipelineName: `${cdk.Aws.STACK_NAME}-Service`,
+    const pipeline = new CodePipeline(this, 'ServicePipeline', {
+        pipelineName: `MicroBot-Service`,
 
-    //     synth: new ShellStep('Synth', {
-    //         input: CodePipelineSource.gitHub('johnwasham/MicroBotAPI', 'main'),
-    //         commands: [
-    //         // Install dependencies, build the app and synthesize
-    //         'npm ci',
-    //         'npm run build',        // optional, if you have a build script
-    //         'npx cdk synth',
-    //         ],
-    //     }),
-    // });
+        synth: new ShellStep('Synth', {
+            input: CodePipelineSource.gitHub('johnwasham/MicroBotAPI', 'main'),
+            commands: [
+            // Install dependencies, build the app and synthesize
+            'npm ci',
+            'npm run build',        // optional, if you have a build script
+            'npx cdk synth',
+            ],
+        }),
+    });
 
     // /* ----------------------------------------------------------
     //    2. Build step – Docker build & push
