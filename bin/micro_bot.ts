@@ -6,7 +6,10 @@ import { MicroBotPipelineStack } from '../lib/pipeline-stack';
 const app = new cdk.App();
 
 new MicroBotPipelineStack(app, 'MicroBotPipelineStack', {
-  env: { account: '418052138440', region: 'us-west-1' }
+  env: { 
+    account: process.env.CDK_DEFAULT_ACCOUNT, 
+    region: process.env.CDK_DEFAULT_REGION 
+  }
 });
 
 app.synth();
