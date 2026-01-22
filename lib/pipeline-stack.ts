@@ -82,7 +82,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
       buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
-          install: { commands: ['npm i -g npm@latest', 'npm ci'] },
+          install: { commands: ['npm ci'] },
           build: { commands: ['npx cdk synth --no-color'] },
         },
         artifacts: {
@@ -110,7 +110,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
       buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
-          install: { commands: ['npm i -g npm@latest', 'npm ci'] },
+          install: { commands: ['npm ci'] },
           build: { commands: ['npx cdk deploy MicroBotPipelineStack --require-approval never'] },
         },
       }),
