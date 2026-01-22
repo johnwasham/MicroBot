@@ -19,7 +19,7 @@ export class ServicePipelineStack extends cdk.Stack {
         pipelineName: `${cdk.Aws.STACK_NAME}-Service`,
 
         synth: new ShellStep('Synth', {
-            input: CodePipelineSource.gitHub('johnwasham/MicroBot', 'main'),
+            input: CodePipelineSource.gitHub('johnwasham/MicroBotAPI', 'main'),
             commands: [
             // Install dependencies, build the app and synthesize
             'npm ci',
