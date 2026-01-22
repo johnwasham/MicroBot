@@ -115,8 +115,8 @@ export class MicroBotPipelineStack extends cdk.Stack {
     });
 
     const betaDeployAction = new codepipeline_actions.CloudFormationCreateUpdateStackAction({
-      actionName: 'Deploy_MicroBot',
-      stackName:  'MicroBot-Beta',
+      actionName: 'Deploy_Beta',
+      stackName:  'beta-MicroBotStack',
       templatePath: synthOutput.atPath('MicroBotStack.template.json'),
       adminPermissions: true,
     });
