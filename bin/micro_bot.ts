@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { MicroBotPipelineStack } from '../lib/pipeline-stack';
+import { MicroBotPipelineStack } from '../lib/infra-stack';
 
 const app = new cdk.App();
 
