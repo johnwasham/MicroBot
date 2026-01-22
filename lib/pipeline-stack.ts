@@ -66,7 +66,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
       stageName: 'Source',
       actions: [
         new cpactions.GitHubSourceAction({
-          actionName: 'CdkRepo',
+          actionName: 'CDK-Repo',
           owner: 'johnwasham',
           repo: 'MicroBot',
           branch: 'main',
@@ -78,11 +78,11 @@ export class MicroBotPipelineStack extends cdk.Stack {
 
     /* 5.2 Build stage – build the CDK stack that will create the pipeline itself */
     const cdkBuildProject = new PipelineProject(this, 'CdkBuild', {
-      environment: { buildImage: cdk.aws_codebuild.LinuxBuildImage.STANDARD_5_0 },
+      environment: { buildImage: cdk.aws_codebuild.LinuxBuildImage.STANDARD_6_0 },
       buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
-          install: { commands: ['npm ci'] },
+          install: { commands: ['npm i -g npm@latest', 'npm ci'] },
           build: { commands: ['npx cdk synth --no-color'] },
         },
         artifacts: {
@@ -94,7 +94,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
     const cdkBuildOutput = new codepipeline.Artifact('CdkBuild');
 
     pipeline.addStage({
-      stageName: 'CDKBuild',
+      stageName: 'CDK-Build',
       actions: [
         new CodeBuildAction({
           actionName: 'Synth',
@@ -110,14 +110,14 @@ export class MicroBotPipelineStack extends cdk.Stack {
       buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
-          install: { commands: ['npm ci'] },
+          install: { commands: ['npm i -g npm@latest', 'npm ci'] },
           build: { commands: ['npx cdk deploy MicroBotPipelineStack --require-approval never'] },
         },
       }),
     });
 
     pipeline.addStage({
-      stageName: 'DeployPipeline',
+      stageName: 'Mutate-Pipeline',
       actions: [
         new CodeBuildAction({
           actionName: 'Deploy',
