@@ -5,7 +5,7 @@ import {
   CodePipelineSource,
   ShellStep,
 } from 'aws-cdk-lib/pipelines';
-import { MicroBotStage } from './stage';
+import { MicroBotStage } from './infra-stage';
 
 
 export class MicroBotPipelineStack extends cdk.Stack {
