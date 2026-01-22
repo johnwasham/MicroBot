@@ -1,30 +1,38 @@
 import * as cdk from 'aws-cdk-lib';
-import * as codebuild from 'aws-cdk-lib/aws-codebuild';
-import * as ecr from 'aws-cdk-lib/aws-ecr';
-import * as codepipeline from 'aws-cdk-lib/aws-codepipeline';
-import * as codepipeline_actions from 'aws-cdk-lib/aws-codepipeline-actions';
+import {
+  aws_codepipeline as codepipeline,
+  aws_codepipeline_actions as cpactions,
+} from 'aws-cdk-lib';
+import {
+  // Repository,
+  // BranchName,
+  // PipelineSource,
+  CodeBuildAction,
+  // CodeBuildProject,
+  // CodeBuildProject,
+} from 'aws-cdk-lib/aws-codepipeline-actions';
+import { PipelineProject } from 'aws-cdk-lib/aws-codebuild';
+
 import { Construct } from 'constructs';
-import { Artifact } from 'aws-cdk-lib/aws-codepipeline';
-import { MicroBotStage } from './stage';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as ecs from 'aws-cdk-lib/aws-ecs';
+import * as ecr from 'aws-cdk-lib/aws-ecr';
+import { MicroBotFargateStack } from './fargate-stack';
 
 
 export class MicroBotPipelineStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const cdkSourceOutput = new Artifact('SourceArtifact');
-    const serviceSourceOutput = new Artifact('SourceArtifact');
-    const synthOutput  = new Artifact('SynthArtifact');
-    // const buildOutput  = new Artifact('BuildArtifact');
 
-    const cdkSourceAction = new codepipeline_actions.GitHubSourceAction({
-      actionName: 'GitHub_Source',
-      owner:     'johnwasham',
-      repo:      'MicroBot',
-      branch:    'main',
-      oauthToken: cdk.SecretValue.secretsManager('github-token'),
-      output: cdkSourceOutput,
-    });
+    // const cdkSourceAction = new codepipeline_actions.GitHubSourceAction({
+    //   actionName: 'GitHub_Source',
+    //   owner:     'johnwasham',
+    //   repo:      'MicroBot',
+    //   branch:    'main',
+    //   oauthToken: cdk.SecretValue.secretsManager('github-token'),
+    //   output: cdkSourceOutput,
+    // });
 
     // const serviceSourceAction = new codepipeline_actions.GitHubSourceAction({
     //   actionName: 'GitHub_Source',
@@ -35,105 +43,99 @@ export class MicroBotPipelineStack extends cdk.Stack {
     //   branch: 'main',
     // });
 
-    // const repository = new ecr.Repository(this, "MicroBotRepo", {
-    //     repositoryName: "microbot",
-    //     lifecycleRules: [
-    //         {
-    //             maxImageCount: 10, // keep only the latest 10 images
-    //         },
-    //     ],
+    const ecrRepo = new ecr.Repository(this, 'MicroBotRepo', {
+      repositoryName: 'microbot',
+      lifecycleRules: [
+        {
+          maxImageCount: 10, // keep only the latest 10 images
+        },
+      ]
+    });
+
+    // const vpc = new ec2.Vpc(this, 'Vpc', {
+    //   maxAzs: 2,
     // });
 
-    // const repoUri = repository.repositoryUri
+    const pipeline = new codepipeline.Pipeline(this, 'Pipeline', {
+      pipelineName: 'MicroBotService',
+      restartExecutionOnUpdate: true,
+    });
 
-    // const buildProject = new codebuild.PipelineProject(this, 'DockerBuild', {
-    //   environment: {
-    //     buildImage: codebuild.LinuxBuildImage.STANDARD_6_0, // has Docker
-    //     privileged: true,
-    //   },
-    //   buildSpec: codebuild.BuildSpec.fromObject({
-    //     version: '0.2',
-    //     phases: {
-    //       pre_build: {
-    //         commands: [
-    //           // Log in to ECR
-    //           `$(aws ecr get-login-password --region ${cdk.Stack.of(this).region} | docker login --username AWS --password-stdin ${repoUri})`,
-    //         ],
-    //       },
-    //       build: {
-    //         commands: [
-    //           // Build the image
-    //           `docker build -t ${repoUri}:latest .`,
-    //         ],
-    //       },
-    //       post_build: {
-    //         commands: [
-    //           // Push the image
-    //           `docker push ${repoUri}:latest`,
-    //         ],
-    //       },
-    //     },
-    //   }),
-    // });
+    const cdkSourceOutput = new codepipeline.Artifact('CdkSource');
+    pipeline.addStage({
+      stageName: 'Source',
+      actions: [
+        new cpactions.GitHubSourceAction({
+          actionName: 'CdkRepo',
+          owner: 'johnwasham',
+          repo: 'MicroBot',
+          branch: 'main',
+          oauthToken: cdk.SecretValue.secretsManager('github-token'),
+          output: cdkSourceOutput,
+        }),
+      ],
+    });
 
-    // const buildAction = new codepipeline_actions.CodeBuildAction({
-    //   actionName: 'Docker_Build',
-    //   project: buildProject,
-    //   input: serviceSourceOutput,
-    //   outputs: [buildOutput],
-    // });
-
-    // Synth
-
-    const synthProject = new codebuild.PipelineProject(this, 'SynthProject', {
-      buildSpec: codebuild.BuildSpec.fromObject({
+    /* 5.2 Build stage – build the CDK stack that will create the pipeline itself */
+    const cdkBuildProject = new PipelineProject(this, 'CdkBuild', {
+      environment: { buildImage: cdk.aws_codebuild.LinuxBuildImage.STANDARD_5_0 },
+      buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
-          install: { commands: ['npm i -g npm@latest, npm ci'] },
-          build:   { commands: ['npm run build', 'npx cdk synth'] },
+          install: { commands: ['npm ci'] },
+          build: { commands: ['npx cdk synth --no-color'] },
         },
         artifacts: {
-          files: ['**/*'],
-          'base-directory': 'cdk.out', 
+          files: ['cdk.out/**/*'],
         },
       }),
     });
 
-    const synthAction = new codepipeline_actions.CodeBuildAction({
-      actionName: 'CDK_Synth',
-      project:   synthProject,
-      input:     cdkSourceOutput,
-      outputs:   [synthOutput],
+    const cdkBuildOutput = new codepipeline.Artifact('CdkBuild');
+
+    pipeline.addStage({
+      stageName: 'CDKBuild',
+      actions: [
+        new CodeBuildAction({
+          actionName: 'Synth',
+          project: cdkBuildProject,
+          input: cdkSourceOutput,
+          outputs: [cdkBuildOutput],
+        }),
+      ],
     });
 
-    // Deployment
-
-    // this runs and creates template
-    // const betaStack = new MicroBotStage(this, 'Beta', {
-    //   env: { account: process.env.CDK_DEFAULT_ACCOUNT,
-    //          region : process.env.CDK_DEFAULT_REGION },
-    // });
-
-    // const betaDeployAction = new codepipeline_actions.CloudFormationCreateUpdateStackAction({
-    //   actionName: 'Deploy_Beta',
-    //   stackName:  'beta-MicroBotStack',
-    //   templatePath: synthOutput.atPath('MicroBotStack.template.json'),
-    //   adminPermissions: true,
-    // });
-    
-    const pipeline = new codepipeline.Pipeline(this, 'Pipeline', {
-      pipelineName: 'MicroBotService'
+    const deployPipeline = new PipelineProject(this, 'DeployPipeline', {
+      environment: { buildImage: cdk.aws_codebuild.LinuxBuildImage.STANDARD_5_0 },
+      buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
+        version: '0.2',
+        phases: {
+          install: { commands: ['npm ci'] },
+          build: { commands: ['npx cdk deploy MicroBotPipelineStack --require-approval never'] },
+        },
+      }),
     });
 
     pipeline.addStage({
-      stageName: "Source",
-      actions: [cdkSourceAction],
+      stageName: 'DeployPipeline',
+      actions: [
+        new CodeBuildAction({
+          actionName: 'Deploy',
+          project: deployPipeline,
+          input: cdkBuildOutput,
+        }),
+      ],
     });
 
-    pipeline.addStage({
-      stageName: 'Synth',
-      actions: [synthAction],
-    });
+    // pipeline.addStage({
+    //   stageName: "Source",
+    //   actions: [cdkSourceAction],
+    // });
+
+    // pipeline.addStage({
+    //   stageName: 'Synth',
+    //   actions: [synthAction],
+    // });
 
     // pipeline.addStage({
     //   stageName: "Build",
