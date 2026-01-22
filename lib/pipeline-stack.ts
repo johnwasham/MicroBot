@@ -106,7 +106,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
     });
 
     const deployPipeline = new PipelineProject(this, 'DeployPipeline', {
-      environment: { buildImage: cdk.aws_codebuild.LinuxBuildImage.STANDARD_5_0 },
+      environment: { buildImage: cdk.aws_codebuild.LinuxBuildImage.STANDARD_6_0 },
       buildSpec: cdk.aws_codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
