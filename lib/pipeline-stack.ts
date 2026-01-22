@@ -89,7 +89,7 @@ export class MicroBotPipelineStack extends cdk.Stack {
       buildSpec: codebuild.BuildSpec.fromObject({
         version: '0.2',
         phases: {
-          install: { commands: ['npm ci'] },
+          install: { commands: ['npm i -g npm@latest, npm ci'] },
           build:   { commands: ['npm run build', 'npx cdk synth'] },
         },
         artifacts: {
