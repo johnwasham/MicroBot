@@ -4,6 +4,7 @@ import { Construct } from "constructs";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as codebuild from 'aws-cdk-lib/aws-codebuild';
 import * as codepipeline from "aws-cdk-lib/aws-codepipeline";
 import * as cp_actions from "aws-cdk-lib/aws-codepipeline-actions";
@@ -48,67 +49,100 @@ export class MicroBotFargateStack extends Stack {
             branch: "main",
         });
 
-        // Build action – runs a CodeBuild project that builds & pushes to ECR
-        const buildProject = new codebuild.PipelineProject(this, "Build", {
+        // CodeBuild project to:
+        // - build Docker image
+        // - push to ECR
+        // - emit imagedefinitions.json for ECS deploy action
+        const project = new codebuild.PipelineProject(this, 'ServiceBuildProject', {
             environment: {
-                computeType: codebuild.ComputeType.SMALL,
-                buildImage: codebuild.LinuxBuildImage.AMAZON_LINUX_2_4,
-                privileged: true, // needed for Docker
+                privileged: true, // required for docker build
+                buildImage: codebuild.LinuxBuildImage.STANDARD_7_0,
+            },
+            environmentVariables: {
+                REPOSITORY_URI: {
+                value: repo.repositoryUri,
+                },
+                CONTAINER_NAME: {
+                // Must match container name in the task definition
+                value: 'app', // change as appropriate
+                },
             },
             buildSpec: codebuild.BuildSpec.fromObject({
-                version: "0.2",
+                version: '0.2',
                 phases: {
                 pre_build: {
                     commands: [
-                    "echo Logging in to Amazon ECR",
-                    "$(aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin ${repo.repositoryUri.split('/')[0]})",
+                    'aws --version',
+                    'COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)',
+                    'IMAGE_TAG=${COMMIT_HASH:=latest}',
+                    'echo "Logging in to Amazon ECR..."',
+                    'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REPOSITORY_URI',
                     ],
                 },
                 build: {
                     commands: [
-                    "echo Building the Docker image",
-                    "docker build -t ${repo.repositoryUri}:$CODEBUILD_RESOLVED_SOURCE_VERSION .",
-                    "docker tag ${repo.repositoryUri}:$CODEBUILD_RESOLVED_SOURCE_VERSION ${repo.repositoryUri}:latest",
+                    'echo "Building the Docker image..."',
+                    'docker build -t $REPOSITORY_URI:latest .',
+                    'docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG',
                     ],
                 },
                 post_build: {
                     commands: [
-                    "echo Pushing the Docker image",
-                    "docker push ${repo.repositoryUri}:$CODEBUILD_RESOLVED_SOURCE_VERSION",
-                    "docker push ${repo.repositoryUri}:latest",
+                    'echo "Pushing the Docker image..."',
+                    'docker push $REPOSITORY_URI:latest',
+                    'docker push $REPOSITORY_URI:$IMAGE_TAG',
+                    'printf \'[{"name":"%s","imageUri":"%s"}]\' "$CONTAINER_NAME" "$REPOSITORY_URI:$IMAGE_TAG" > imagedefinitions.json',
+                    'echo "imagedefinitions.json created:"',
+                    'cat imagedefinitions.json',
                     ],
                 },
                 },
                 artifacts: {
-                files: [],
+                files: ['imagedefinitions.json'],
                 },
             }),
         });
 
+        // Permissions for CodeBuild to push to ECR
+        repo.grantPullPush(project.role!);
+        project.addToRolePolicy(
+        new iam.PolicyStatement({
+            actions: ['ecr:GetAuthorizationToken'],
+            resources: ['*'],
+        }),
+        );
+
         const buildAction = new cp_actions.CodeBuildAction({
-            actionName: "CodeBuild",
-            project: buildProject,
+            actionName: 'BuildAndPushImage',
+            project,
             input: sourceOutput,
             outputs: [buildOutput],
         });
 
-        // Deploy action – updates the task definition with the new image
+        // ECS deploy action: updates task definition of the service with new image from imagedefinitions.json
         const deployAction = new cp_actions.EcsDeployAction({
-            actionName: "ECS_Deploy",
+            actionName: 'DeployToFargate',
             service: fargateService.service,
-            imageFile: new codepipeline.ArtifactPath(buildOutput, `imagedefinitions.json`),
+            input: buildOutput, // contains imagedefinitions.json
         });
 
-        // Assemble the pipeline
-        new codepipeline.Pipeline(this, "Pipeline", {
-        stages: [
-            { stageName: "Source", actions: [sourceAction] },
-            { stageName: "Build",  actions: [buildAction] },
-            { stageName: "Deploy", actions: [deployAction] },
-        ],
+        // Pipeline
+        new codepipeline.Pipeline(this, 'ServiceCodePipeline', {
+            pipelineName: 'ServiceCodeToFargatePipeline',
+            stages: [
+                {
+                    stageName: 'Source',
+                    actions: [sourceAction],
+                },
+                {
+                    stageName: 'Build',
+                    actions: [buildAction],
+                },
+                {
+                    stageName: 'Deploy',
+                    actions: [deployAction],
+                },
+            ],
         });
-
-        /* ── 4. Permissions (so the pipeline can push to ECR) ───────────────────── */
-        repo.grantPullPush(buildProject.role!);
     }
 }
