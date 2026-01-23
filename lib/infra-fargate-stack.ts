@@ -30,7 +30,7 @@ export class MicroBotFargateStack extends Stack {
         const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'FargateService', {
             cluster,
             taskImageOptions: {
-                image: ecs.ContainerImage.fromRegistry("microbot") // amazon/amazon-ecs-sample
+                image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample")
             }
         })
 
@@ -96,7 +96,7 @@ export class MicroBotFargateStack extends Stack {
         const deployAction = new cp_actions.EcsDeployAction({
             actionName: "ECS_Deploy",
             service: fargateService.service,
-            imageFile: new codepipeline.ArtifactPath(buildOutput, `imagedefinitions.json`)
+            imageFile: new codepipeline.ArtifactPath(buildOutput, `imagedefinitions.json`),
         });
 
         // Assemble the pipeline
