@@ -13,11 +13,11 @@ new MicroBotPipelineStack(app, 'MicroBotPipelineStack', {
   }
 });
 
-new ServicePipelineStack(app, 'MicroBotServicePipelineStack', {
-  env: { 
-    account: process.env.CDK_DEFAULT_ACCOUNT, 
-    region: process.env.CDK_DEFAULT_REGION 
-  }
-});
+// new ServicePipelineStack(app, 'MicroBotServicePipelineStack', {
+//   env: { 
+//     account: process.env.CDK_DEFAULT_ACCOUNT, 
+//     region: process.env.CDK_DEFAULT_REGION 
+//   }
+// });
 
 app.synth();
