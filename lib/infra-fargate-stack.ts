@@ -31,7 +31,7 @@ export class MicroBotFargateStack extends Stack {
         const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'FargateService', {
             cluster,
             taskImageOptions: {
-                image: ecs.ContainerImage.fromRegistry("amazon/amazon-ecs-sample")
+                image: ecs.ContainerImage.fromEcrRepository(repo, 'latest'),
             }
         })
 
