@@ -27,11 +27,13 @@ export class MicroBotFargateStack extends Stack {
         });
 
         const cluster = new ecs.Cluster(this, 'MicroBotCluster', { vpc });
+        const containerName = 'api';
 
         const fargateService = new ecs_patterns.ApplicationLoadBalancedFargateService(this, 'FargateService', {
             cluster,
             taskImageOptions: {
                 image: ecs.ContainerImage.fromEcrRepository(repo, 'latest'),
+                containerName: containerName,
             }
         })
 
@@ -60,11 +62,11 @@ export class MicroBotFargateStack extends Stack {
             },
             environmentVariables: {
                 REPOSITORY_URI: {
-                value: repo.repositoryUri,
+                    value: repo.repositoryUri,
                 },
                 CONTAINER_NAME: {
-                // Must match container name in the task definition
-                value: 'app', // change as appropriate
+                    // Must match container name in the task definition
+                    value: containerName, // change as appropriate
                 },
             },
             buildSpec: codebuild.BuildSpec.fromObject({
